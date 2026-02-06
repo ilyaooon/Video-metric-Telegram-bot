@@ -47,38 +47,22 @@ class SqlQueryGenerator:
             - updated_at (TIMESTAMPTZ)
 
             ВАЖНО:
-            1. Для фильтрации по дате в таблице videos (TIMESTAMPTZ) используй преобразование к UTC:
-            - DATE(video_created_at) = '2025-11-28' -> CAST(video_created_at AT TIME ZONE 'UTC' AS DATE) = '2025-11-28'
-            - DATE(video_created_at) BETWEEN '2025-11-01' AND '2025-11-05' -> CAST(video_created_at AT TIME ZONE 'UTC' AS DATE) BETWEEN '2025-11-01' AND '2025-11-05'            
-            АЛЬТЕРНАТИВНО используй диапазон в UTC:
-            - video_created_at >= '2025-11-01 00:00:00 UTC' AND video_created_at < '2025-11-06 00:00:00 UTC'
-            2. Для таблицы video_snapshots также используй CAST(created_at AT TIME ZONE 'UTC' AS DATE)
-            3. creator_id - это строка (VARCHAR), оборачивай в кавычки
-            4. id видео - UUID, но в SQL используй как строку с кавычками
-            5. Для уникальных видео используй COUNT(DISTINCT video_id)
-            6. Для суммирования приростов используй SUM(delta_views_count)
-            
-            ПРИМЕРЫ SQL:
-            - "Сколько видео вышло с 1 по 5 ноября 2025?" -> 
-            SELECT COUNT(*) FROM videos WHERE CAST(video_created_at AT TIME ZONE 'UTC' AS DATE) BETWEEN '2025-11-01' AND '2025-11-05';            
-            - "На сколько просмотров выросли все видео 28 ноября 2025?" -> 
-            SELECT SUM(delta_views_count) FROM video_snapshots WHERE CAST(created_at AT TIME ZONE 'UTC' AS DATE) = '2025-11-28';            
-            - "Сколько разных видео получали новые просмотры 27 ноября 2025?" -> 
-            SELECT COUNT(DISTINCT video_id) FROM video_snapshots WHERE CAST(created_at AT TIME ZONE 'UTC' AS DATE) = '2025-11-27' AND delta_views_count > 0;
-            
-            ДАТЫ в русском формате конвертируй в SQL-формат (с учетом UTC):
-            ВАЖНО: Все даты в БД хранятся в UTC, поэтому используй CAST(column AT TIME ZONE 'UTC' AS DATE)
+            1. Все даты и время в БД хранятся в UTC (+00:00)
+            2. Для фильтрации по дате видео используй DATE(video_created_at)
+            3. Для фильтрации по дате снапшотов используй DATE(created_at)
+            4. Для фильтрации по точному времени внутри дня указывай часовой пояс UTC (+00):
+            - created_at >= '2025-11-28 10:00:00+00'
+            - created_at < '2025-11-28 15:00:00+00'
+            5. Для фильтрации по периоду дат используй диапазон с UTC:
+            - video_created_at >= '2025-11-01 00:00:00+00'
+            - video_created_at < '2025-11-06 00:00:00+00'
+            6. В таблице video_snapshots НЕТ поля creator_id. Для фильтрации снапшотов по креатору используй JOIN с таблицей videos
+            7. Всегда используй '<' вместо '<=' для верхней границы временного интервала
 
-            Для фильтрации по конкретной дате:
-            - "28 ноября 2025" -> CAST(video_created_at AT TIME ZONE 'UTC' AS DATE) = '2025-11-28'
-            - "с 1 по 5 ноября 2025 включительно" -> CAST(video_created_at AT TIME ZONE 'UTC' AS DATE) BETWEEN '2025-11-01' AND '2025-11-05'
-
-            Для относительных дат:
-            - "вчера" -> CAST(video_created_at AT TIME ZONE 'UTC' AS DATE) = CURRENT_DATE - INTERVAL '1 day'
-            - "сегодня" -> CAST(video_created_at AT TIME ZONE 'UTC' AS DATE) = CURRENT_DATE
-            - "за последнюю неделю" -> video_created_at >= NOW() - INTERVAL '7 days'  # для временного диапазона
-
-            Аналогично для таблицы video_snapshots используй CAST(created_at AT TIME ZONE 'UTC' AS DATE)
+            ДАТЫ в русском формате конвертируй в SQL-формат:
+            - "28 ноября 2025" -> DATE(column) = '2025-11-28'
+            - "с 3 по 10 ноября 2025 включительно" -> column >= '2025-11-03 00:00:00+00' AND column < '2025-11-10 00:00:00+00'
+            - "с 7:00 до 11:00 25 ноября 2025" -> column >= '2025-11-25 07:00:00+00' AND column < '2025-11-25 11:00:00+00' AND DATE(column) = '2025-11-28'
 
             ВОПРОС ПОЛЬЗОВАТЕЛЯ: {user_query}
 
