@@ -7,7 +7,7 @@
 - Токен Telegram бота (получить у @BotFather)
 
 ## Загрузка JSON в базу данных
- bash
+    bash
 python database/setup_database.py путь_к_файлу_json
 
 ## Установка
@@ -97,28 +97,40 @@ python bot.py
 - updated_at (TIMESTAMPTZ)
 
 ВАЖНО:
-1. Для фильтрации по дате используй DATE() функцию
-2. creator_id - это строка (VARCHAR), оборачивай в кавычки
-3. id видео - UUID, но в SQL используй как строку с кавычками
-4. Для уникальных видео используй COUNT(DISTINCT video_id)
-5. Для суммирования приростов используй SUM(delta_views_count)
+1. Для фильтрации по дате в таблице videos (TIMESTAMPTZ) используй преобразование к UTC:
+- DATE(video_created_at) = '2025-11-28' -> CAST(video_created_at AT TIME ZONE 'UTC' AS DATE) = '2025-11-28'
+- DATE(video_created_at) BETWEEN '2025-11-01' AND '2025-11-05' -> CAST(video_created_at AT TIME ZONE 'UTC' AS DATE) BETWEEN '2025-11-01' AND '2025-11-05'            
+АЛЬТЕРНАТИВНО используй диапазон в UTC:
+- video_created_at >= '2025-11-01 00:00:00 UTC' AND video_created_at < '2025-11-06 00:00:00 UTC'
+2. Для таблицы video_snapshots также используй CAST(created_at AT TIME ZONE 'UTC' AS DATE)
+3. creator_id - это строка (VARCHAR), оборачивай в кавычки
+4. id видео - UUID, но в SQL используй как строку с кавычками
+5. Для уникальных видео используй COUNT(DISTINCT video_id)
+6. Для суммирования приростов используй SUM(delta_views_count)
 
 ПРИМЕРЫ SQL:
-- "Сколько всего видео?" -> SELECT COUNT(*) FROM videos;
-- "Сколько видео у креатора X?" -> SELECT COUNT(*) FROM videos WHERE creator_id = 'X';
-- "Сколько видео набрало > 100000 просмотров?" -> SELECT COUNT(*) FROM videos WHERE views_count > 100000;
-- "Сколько видео вышло с 1 по 5 ноября 2025?" -> SELECT COUNT(*) FROM videos WHERE DATE(video_created_at) BETWEEN '2025-11-01' AND '2025-11-05';
-- "На сколько просмотров выросли все видео 28 ноября 2025?" -> SELECT SUM(delta_views_count) FROM video_snapshots WHERE DATE(created_at) = '2025-11-28';
-- "Сколько разных видео получали новые просмотры 27 ноября 2025?" -> SELECT COUNT(DISTINCT video_id) FROM video_snapshots WHERE DATE(created_at) = '2025-11-27' AND delta_views_count > 0;
+- "Сколько видео вышло с 1 по 5 ноября 2025?" -> 
+SELECT COUNT(*) FROM videos WHERE CAST(video_created_at AT TIME ZONE 'UTC' AS DATE) BETWEEN '2025-11-01' AND '2025-11-05';            
+- "На сколько просмотров выросли все видео 28 ноября 2025?" -> 
+SELECT SUM(delta_views_count) FROM video_snapshots WHERE CAST(created_at AT TIME ZONE 'UTC' AS DATE) = '2025-11-28';            
+- "Сколько разных видео получали новые просмотры 27 ноября 2025?" -> 
+SELECT COUNT(DISTINCT video_id) FROM video_snapshots WHERE CAST(created_at AT TIME ZONE 'UTC' AS DATE) = '2025-11-27' AND delta_views_count > 0;
 
-ДАТЫ в русском формате конвертируй в SQL-формат:
-- "28 ноября 2025" -> '2025-11-28'
-- "с 1 по 5 ноября 2025" -> BETWEEN '2025-11-01' AND '2025-11-05'
-- "вчера" -> DATE(NOW() - INTERVAL '1 day')
-- "сегодня" -> DATE(NOW())
-- "за последнюю неделю" -> created_at >= NOW() - INTERVAL '7 days'
+ДАТЫ в русском формате конвертируй в SQL-формат (с учетом UTC):
+ВАЖНО: Все даты в БД хранятся в UTC, поэтому используй CAST(column AT TIME ZONE 'UTC' AS DATE)
 
-ВОПРОС ПОЛЬЗОВАТЕЛЯ: <запрос от пользователя>
+Для фильтрации по конкретной дате:
+- "28 ноября 2025" -> CAST(video_created_at AT TIME ZONE 'UTC' AS DATE) = '2025-11-28'
+- "с 1 по 5 ноября 2025 включительно" -> CAST(video_created_at AT TIME ZONE 'UTC' AS DATE) BETWEEN '2025-11-01' AND '2025-11-05'
+
+Для относительных дат:
+- "вчера" -> CAST(video_created_at AT TIME ZONE 'UTC' AS DATE) = CURRENT_DATE - INTERVAL '1 day'
+- "сегодня" -> CAST(video_created_at AT TIME ZONE 'UTC' AS DATE) = CURRENT_DATE
+- "за последнюю неделю" -> video_created_at >= NOW() - INTERVAL '7 days'  # для временного диапазона
+
+Аналогично для таблицы video_snapshots используй CAST(created_at AT TIME ZONE 'UTC' AS DATE)
+
+ВОПРОС ПОЛЬЗОВАТЕЛЯ: {user_query}
 
 SQL-ЗАПРОС (ТОЛЬКО КОД):
             
