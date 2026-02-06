@@ -7,33 +7,36 @@
 - Токен Telegram бота (получить у @BotFather)
 
 ## Загрузка JSON в базу данных
-    bash
+```bash
 python database/setup_database.py путь_к_файлу_json
-
+```
 ## Установка
 1. Установите зависимости:
-    bash
+```bash
 pip install -r requirements.txt
+```
 
 2. Настройте переменные окружения в файле .env:
+```.env
 TELEGRAM_TOKEN=ваш_токен_бота
 OPENROUTER_API_KEY=ваш_ключ_openrouter
 DATABASE_URL=postgresql+asyncpg://пользователь:пароль@ip-адрес:порт/videosdb
+```
 
 3. Создайте базу данных PostgreSQL:
-    bash
+```bash
 createdb videosdb
-
+```
 4. Загрузите данные:
-    bash
+```bash
 python database/setup_database.py путь_к_файлу
-
+```
 5. Запустите бота:
-    bash
+```bash
 python bot.py
-
+```
 ## Архитектура проекта
-    project/
+    video-metric-telegram-bot/
         bot.py                  # Основной файл бота (обработчик сообщений)
         SqlQueryGenerator.py    # Генератор SQL через LLM API
         database/
@@ -46,7 +49,7 @@ python bot.py
 ## Компоненты системы
 1. Telegram Bot (bot.py)
 Принимает текстовые сообщения от пользователей
-Обрабатывает команды (/start, /status)
+Обрабатывает команды (/start)
 Управляет потоком запросов
 
 2. SQL Generator (SqlQueryGenerator.py)
@@ -66,10 +69,12 @@ python bot.py
 Логирование всех операций
 
 ## Промт для LLM
-1. Системный промт:
+- Системный промт:
+```
 Ты — опытный SQL-разработчик PostgreSQL.
-
-2. Пользовательский промт:
+```
+- Пользовательский промт:
+```
 СХЕМА БАЗЫ ДАННЫХ:
 1. ТАБЛИЦА videos:
 - id (UUID) - идентификатор видео
@@ -117,7 +122,8 @@ python bot.py
 ВОПРОС ПОЛЬЗОВАТЕЛЯ: {user_query}
 
 SQL-ЗАПРОС (ТОЛЬКО КОД):
+```
             
 ## Логирование
-bot.log - логи работы бота
-setup.log - логи инициализации базы данных
+- `bot.log` - логи работы бота
+- `setup.log` - логи инициализации базы данных
